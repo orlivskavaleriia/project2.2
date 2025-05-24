@@ -17,6 +17,7 @@ The infrastructure includes:
 - ECR for storing Docker container images
 
 Project Structure
+```
 project-terraform/
 └── infrastructure/
     ├── main.tf               # Root module for orchestration
@@ -32,6 +33,7 @@ project-terraform/
     ├── ecr.tf                # Elastic Container Registry
     ├── variables.tf          # Input variables
     └── outputs.tf            # Outputs for referencing
+```
 
 Prerequisites
 Terraform CLI ≥ 1.3
