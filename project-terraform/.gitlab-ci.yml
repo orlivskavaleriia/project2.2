@@ -1,0 +1,90 @@
+image: docker:latest
+
+variables:
+  AWS_REGION: "eu-central-1"
+  AWS_ACCOUNT_ID: "891612544658"
+  AWS_ECR_REGISTRY: "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+  ECR_REPOSITORY_BACKEND_RDS: "glovo-backend_rds-repo"
+  ECR_REPOSITORY_BACKEND_REDIS: "glovo-backend_redis-repo"
+  ECR_REPOSITORY_FRONTEND: "glovo-frontend-repo"
+  IMAGE_TAG: "latest"  # базовий тег
+
+services:
+  - docker:dind
+
+before_script:
+  - apk add --no-cache python3 py3-pip aws-cli jq
+  - export DOCKER_HOST="tcp://docker:2375"
+  - aws sts get-caller-identity
+  - aws ecr get-login-password --region $AWS_REGION | docker login --username AWS --password-stdin $AWS_ECR_REGISTRY
+  - docker info
+  - echo "Вміст репозиторію:"
+  - ls -la
+
+stages:
+  - deploy
+  - update-ecs
+
+# ------------------------- ДЕПЛОЙ ОБРАЗІВ -------------------------
+
+deploy_backend_rds:
+  stage: deploy
+  script:
+    - IMAGE_TAG_COMMIT="${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}"
+    - docker build -t $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_RDS:latest ./backend_rds
+    - docker tag $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_RDS:latest $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_RDS:$IMAGE_TAG_COMMIT
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_RDS:latest
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_RDS:$IMAGE_TAG_COMMIT
+  only:
+    - main
+
+deploy_backend_redis:
+  stage: deploy
+  script:
+    - IMAGE_TAG_COMMIT="${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}"
+    - docker build -t $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_REDIS:latest ./backend_redis
+    - docker tag $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_REDIS:latest $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_REDIS:$IMAGE_TAG_COMMIT
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_REDIS:latest
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_BACKEND_REDIS:$IMAGE_TAG_COMMIT
+  only:
+    - main
+
+deploy_frontend:
+  stage: deploy
+  script:
+    - IMAGE_TAG_COMMIT="${CI_COMMIT_REF_NAME}-${CI_COMMIT_SHORT_SHA}"
+    - docker build -t $AWS_ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:latest ./frontend
+    - docker tag $AWS_ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:latest $AWS_ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG_COMMIT
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:latest
+    - docker push $AWS_ECR_REGISTRY/$ECR_REPOSITORY_FRONTEND:$IMAGE_TAG_COMMIT
+  only:
+    - main
+
+# ------------------------- ОНОВЛЕННЯ ECS -------------------------
+
+update_backend_rds:
+  stage: update-ecs
+  script:
+    - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_BACKEND_RDS --force-new-deployment
+  only:
+    - main
+  needs:
+    - deploy_backend_rds  
+
+update_backend_redis:
+  stage: update-ecs
+  script:
+    - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_BACKEND_REDIS --force-new-deployment
+  only:
+    - main
+  needs:
+    - deploy_backend_redis
+
+update_frontend:
+  stage: update-ecs
+  script:
+    - aws ecs update-service --cluster $ECS_CLUSTER --service $ECS_SERVICE_FRONTEND --force-new-deployment
+  only:
+    - main
+  needs:
+    - deploy_frontend

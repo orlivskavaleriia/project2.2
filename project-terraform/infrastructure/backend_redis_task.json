@@ -1,0 +1,28 @@
+[
+  {
+    "name": "backend-redis",
+    "image": "891612544658.dkr.ecr.eu-central-1.amazonaws.com/glovo-backend_redis-repo:latest",
+    "memory": 512,
+    "cpu": 256,
+    "essential": true,
+    "networkMode": "awsvpc",
+    "portMappings": [
+      {
+        "containerPort": 8001, "hostPort": 8001, "name": "backend-redis"
+      }
+    ],
+    "environment": [
+      {"name": "REDIS_HOST", "value": "glovo-glovo-redis.wldfpj.0001.euc1.cache.amazonaws.com"},
+      {"name": "REDIS_PORT", "value": "6379"},
+      {"name": "REDIS_DB", "value": "0"}],
+
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/backend_redis",
+        "awslogs-region": "eu-central-1",
+        "awslogs-stream-prefix": "backend_redis"
+      }
+    }
+  }
+]

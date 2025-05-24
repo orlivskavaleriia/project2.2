@@ -1,0 +1,33 @@
+[
+  {
+    "name": "frontend",
+    "image": "891612544658.dkr.ecr.eu-central-1.amazonaws.com/glovo-frontend-repo:latest",
+    "memory": 512,
+    "cpu": 256,
+    "essential": true,
+    "networkMode": "awsvpc",
+    "portMappings": [
+      {
+        "containerPort": 3000, "hostPort": 3000, "name": "frontend"
+      }
+    ],
+    "environment": [
+      {
+        "name": "BACKEND_RDS_URL",
+        "value": "http://backend-rds:8000/test_connection/"
+      },
+      {
+        "name": "BACKEND_REDIS_URL",
+        "value": "http://backend-redis:8001/test_connection/"
+      }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/frontend",
+        "awslogs-region": "eu-central-1",
+        "awslogs-stream-prefix": "frontend"
+      }
+    }
+  }
+]

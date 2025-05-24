@@ -1,0 +1,30 @@
+[
+  {
+    "name": "backend-rds",
+    "image": "891612544658.dkr.ecr.eu-central-1.amazonaws.com/glovo-backend_rds-repo:latest",
+    "memory": 512,
+    "cpu": 256,
+    "essential": true,
+    "networkMode": "awsvpc",
+    "portMappings": [
+      {
+        "containerPort": 8000, "hostPort": 8000, "name": "backend-rds"
+      }
+    ],
+    "logConfiguration": {
+      "logDriver": "awslogs",
+      "options": {
+        "awslogs-group": "/ecs/backend_rds",
+        "awslogs-region": "eu-central-1",
+        "awslogs-stream-prefix": "backend_rds"
+      }
+    },
+    "environment": [
+    { "name": "DB_NAME", "value": "postgres" },
+    { "name": "DB_USER", "value": "postgres" },
+    { "name": "DB_PASSWORD", "value": "postgres" },
+    { "name": "DB_HOST", "value": "glovo-rds-instance.c5gcuo4wawoa.eu-central-1.rds.amazonaws.com" },
+    { "name": "DB_PORT", "value": "5432" }
+    ]
+  }
+]
